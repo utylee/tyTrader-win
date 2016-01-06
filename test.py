@@ -1,6 +1,7 @@
 import sys
 import asyncio
 import win32com
+
 #from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -29,7 +30,6 @@ class MyWindows(QMainWindow):
         self.kiwoom.dynamicCall("CommConnect()")
 
 with loop:
-    pass
     window = MyWindows()
     window.show()
     loop.run_forever()
