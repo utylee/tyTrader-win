@@ -11,6 +11,8 @@ from PyQt5.QAxContainer import *
 #from win32com import client 
 from quamash import QEventLoop
 
+from tyLogic import *
+
 qt5_url = "C:/cygwin/home/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/plugins" 
 
 # PyQt5를 virtualenv 상에서 사용하기 위해서는 정확하게 Platform 폴더를 지정해줘야 한다고 합니다.
@@ -33,10 +35,14 @@ class MyWindow(QMainWindow):
 
         self.ordered = 0   # 주문 발생 여부, 중복 주문을 막기 위한 변수입니다
 
+
         #test =win32com.client.Dispatch("KHOPENAPI.KHOpenAPICtrl.1")
-        #self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
+        self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
         # 키움OpenApi 접속 창을 띄웁니다.
         self.kiwoom.dynamicCall("CommConnect()")
+
+        self.jongmok_set = Jongmok_set(self.kiwoom)
+
 
         # 접속 버튼을 생성합니다
         self.btn1 = QPushButton("Acc Info", self)
@@ -67,6 +73,11 @@ class MyWindow(QMainWindow):
         self.btn4.move(20, 130)
         self.btn4.clicked.connect(self.OnBtn4_clicked)
 
+        # 조건 매수 버튼을 생성합니다.
+        self.btn5 = QPushButton("add condi", self)
+        self.btn5.move(20, 170)
+        self.btn5.clicked.connect(self.OnBtn5_clicked)
+
     def OnBtn1_clicked(self):
         #ret = self.kiwoom.dynamicCall("CommConnect()")
         #ret = self.kiwoom.CommConnect()
@@ -92,6 +103,10 @@ class MyWindow(QMainWindow):
         #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "053260", 0, "0")
         #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "016090", 0, "0")
         #ret = self.kiwoom.SetRealReg("0001", "032540", "10", "0") #TJ 미디어
+
+
+
+
         ret = self.kiwoom.SetRealReg("0001", "053260", "10", "0") #금강철강
         print(ret)
 
@@ -105,6 +120,25 @@ class MyWindow(QMainWindow):
         #ret = self.kiwoom.dynamicCall("SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)",\
         #                ["주식주문", "0107", "3670956111", 1, "016090", 1, 3700, "0", ""])
         print("주문전송결과ret : {}".format(ret))
+
+    # 검색조건 활성화 버튼
+    def OnBtn5_clicked(self):
+        ret = self.kiwoom.SetRealReg("0001", "032540", "10", "0") #TJ 미디어
+        # 검색조건 등록 관련 클래스 선언 및 설정해주는 부분
+
+        self.jongmok_set.add_jongmok("002620")  # 제일약품(신) 
+        self.jongmok_set.add_jongmok("033320")  # 제이씨현시스템(신) 
+        self.jongmok_set.add_jongmok("065450")  # 빅텍(신) 
+        self.jongmok_set.add_jongmok("086060")  # 진바이오텍(코)
+
+        # 종목별 logic을 추가합니다.
+        self.jongmok_set.add_jongmok_logic("002620", Logic_Buy(self.jongmok_set.get_jongmok("002620"), 49700, 1))
+        self.jongmok_set.add_jongmok_logic("033320", Logic_Buy(self.jongmok_set.get_jongmok("033320"), 5000, 1))
+        self.jongmok_set.add_jongmok_logic("065450", Logic_Buy(self.jongmok_set.get_jongmok("065450"), 3150, 1))
+        self.jongmok_set.add_jongmok_logic("086060", Logic_Buy(self.jongmok_set.get_jongmok("086060"), 4820, 1))
+
+        # 키움 실시간 데이터 수신에 등록해줍니다.
+        self.jongmok_set.register_realtime_all()
 
     # TR가격데이터가 수신되었을 때의 트리거 함수입니다.
     def OnReceiveTrData(self, sScrNo, sRQName, sTRCode, sRecordName, sPreNext,\
@@ -125,25 +159,38 @@ class MyWindow(QMainWindow):
                     ret = self.kiwoom.SendOrder("주식주문", "0107", "3670956111", 1, "032540", 1, 3800, "00", "") # TJ미디어
                     self.ordered = 1
         else:
-            print('OnReceiveTrData::{},{},{},{},{},{},{},{}'.format(sRQName.strip(), sTRCode, sRecordName, sPreNext, \
-                                nDataLength, sErrorCode, sMessage, sSPlmMsg))
-            order_vol = self.kiwoom.CommRqData("주문수량", "opt10012", 0, "0101")
-            print('주문수량 : {}'.format(order_vol))
+            pass
+            #print('OnReceiveTrData::{},{},{},{},{},{},{},{}'.format(sRQName.strip(), sTRCode, sRecordName, sPreNext, \
+            #                    nDataLength, sErrorCode, sMessage, sSPlmMsg))
+            #order_vol = self.kiwoom.CommRqData("주문수량", "opt10012", 0, "0101")
+            #print('주문수량 : {}'.format(order_vol))
 
     # 실시간 가격데이터가 수신되었을 때의 트리거 함수입니다.
-    def OnReceiveRealData(self, sCode, sRealType, sRealData):
-        print('실시간 시세 OnReceive!()')
-        #real_price = self.kiwoom.dynamicCall("GetCommRealData(QString, int)", sCode, 0 )
-        real_price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
-        real_volume = self.kiwoom.GetCommRealData("주식체결", 15).strip()
-        print("종목코드 : {}, 현재가 : {}, 거래량 : {}".format(sCode, real_price, real_volume))
+    def OnReceiveRealData(self, code, sRealType, sRealData):
+        print('실시간 시세 OnReceive!()::종목코드:{}'.format(code))
+        #real_price = self.kiwoom.dynamicCall("GetCommRealData(QString, int)", code, 0 )
 
+        price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
+        try :
+            if price != "":
+                self.jongmok_set.update_jongmok_price(code, int(price))
+
+        except :
+            print(".OnReceiveRealData::update_jongmok_price 중 에러발생")
+        #real_price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
+        #real_volume = self.kiwoom.GetCommRealData("주식체결", 15).strip()
+        #print("종목코드 : {}, 현재가 : {}, 거래량 : {}".format(code, real_price, real_volume))
+
+        self.jongmok_set.unseal(code)
+
+        '''
         # 관심종목의 경우 조건만족 매수로직입니다.
-        if sCode == "032540" and self.ordered == 0: # TJ미디어, 아직 매수주문이 발생하지 않은 경우
+        if code == "032540" and self.ordered == 0: # TJ미디어, 아직 매수주문이 발생하지 않은 경우
             # 고가를 넘어섰을 때 30만원을 추가로 매수합니다.
             if int(real_price) > 3800:
                 ret = self.kiwoom.SendOrder("주식주문", "0107", "3670956111", 1, "032540", 1, 3800, "00", "") # TJ미디어
                 self.ordered = 1
+        '''
 
     # 주문 접수/확인 수신 시 트리거되는 함수입니다.
     def OnReceiveChejanData(self, sGubun, nItemCnt, sFIDList):
