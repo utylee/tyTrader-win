@@ -41,8 +41,8 @@ class MyWindow(QMainWindow):
         # 키움OpenApi 접속 창을 띄웁니다.
         self.kiwoom.dynamicCall("CommConnect()")
 
+        # 종목 세트를 선언하고 ocx를 설정해줍다.
         self.jongmok_set = Jongmok_set(self.kiwoom)
-
 
         # 접속 버튼을 생성합니다
         self.btn1 = QPushButton("Acc Info", self)
@@ -50,7 +50,7 @@ class MyWindow(QMainWindow):
         self.btn1.clicked.connect(self.OnBtn1_clicked)
         #self.connect(self.btn1, SIGNAL("clicked()"), self.OnBtn1_clicked)
 
-        # ocx receive 시그널을 연결해줍니다.
+        # 각종 ocx receive 시그널들을 연결해줍니다.
         self.kiwoom.OnReceiveTrData.connect(self.OnReceiveTrData)
         self.kiwoom.OnReceiveRealData.connect(self.OnReceiveRealData)
         self.kiwoom.OnReceiveChejanData.connect(self.OnReceiveChejanData)
@@ -75,7 +75,8 @@ class MyWindow(QMainWindow):
 
         # 조건 매수 버튼을 생성합니다.
         self.btn5 = QPushButton("add condi", self)
-        self.btn5.move(20, 170)
+        self.btn5.setGeometry(20, 170, 200, 50)
+        #self.btn5.move(20, 170)
         self.btn5.clicked.connect(self.OnBtn5_clicked)
 
     def OnBtn1_clicked(self):
@@ -171,11 +172,11 @@ class MyWindow(QMainWindow):
         #real_price = self.kiwoom.dynamicCall("GetCommRealData(QString, int)", code, 0 )
 
         price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
-        try :
+        try:
             if price != "":
                 self.jongmok_set.update_jongmok_price(code, int(price))
 
-        except :
+        except:
             print(".OnReceiveRealData::update_jongmok_price 중 에러발생")
         #real_price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
         #real_volume = self.kiwoom.GetCommRealData("주식체결", 15).strip()

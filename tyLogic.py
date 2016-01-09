@@ -29,16 +29,8 @@ class Jongmok_set:
     def update_jongmok_price(self, code, price):
         self.jongmok_dict[code]._setprice(price)
 
-        #for i in self.jongmok_list:
-        #    if i.code == code:
-        #        i._setprice(price)
-
     def unseal(self, code):
         self.jongmok_dict[code].unseal()
-        #for i in self.jongmok_list:
-        #    if i.code == code:
-        #        i.unseal()
-
 
 class Jongmok:
     def __init__(self, ocx, code):
@@ -63,8 +55,7 @@ class Jongmok:
 
 class Logic:
     def __init__(self): pass
-       #self.ocx = ocx 
-    def doLogic(self) : pass
+    def doLogic(self): pass
 
 
 # 조건만족 실제 매수 구현클래스입니다
@@ -74,7 +65,7 @@ class Logic_Buy(Logic):
 
         self.jongmok = jongmok 
         self.buy_price = buy_price              # 매수발동 가격 조건입니다.
-        self.buy_volume = buy_volume                    # 매수 물량입니다.
+        self.buy_volume = buy_volume            # 매수 물량입니다.
         self.ordered = 0
 
     def doLogic(self):
