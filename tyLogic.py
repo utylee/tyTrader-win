@@ -57,6 +57,9 @@ class Jongmok:
     def get_price(self, obj_type):
         return self._instance_connections[obj_type].price
 
+    def set_price(self, obj_type, price):
+        self._instance_connections[obj_type].price = price
+
     def initialize(self):
         self._add_price_type(VP_cur)
         self._add_price_type(SP_1_chart)
@@ -72,8 +75,10 @@ class Jongmok:
 
     # 실시간 가격에 따라 변화해야하는 가격들을 업데이트해줍니다.
     def update_prices(self):
+        for i in self.prices.keys():
+            self._instance_connections[i].update_price(self)
+            #self.prices[i].update_price(self)
 
-        pass
 
     def _setprice(self, price, price_type):
         self.prices[price_type] = price
@@ -88,14 +93,14 @@ class Price:
         self.price = 0
         self.price_obj = None
     def fetch(self, jongmok): pass
-    def calculate(self, jongmok): pass
+    def update_price(self, jongmok): pass
 
 #------------------------------------------------------------------------
 class Variable_price(Price):
     def __init__(self):
         super().__init__()
 
-    def calculate(self, jongmok):
+    def update_price(self, jongmok):
         pass
 
 class Static_price(Price):
@@ -110,11 +115,17 @@ class VP_1_300(Variable_price):
     def __init__(self):
         super().__init__()
 
-    def calculate(self, jongmok):
+    def update_price(self, jongmok):
+        arr = jongmok.get_price(SP_1_chart)
         sum_price = 0
-        for i in price_data:
-            sum_price = sum_price + i
+        for i in range(300):
+            sum_price = sum_price + int(arr[i][0][1:])
+        # 현재가를 즉각 반영하는 알고리즘은 추후 적용하기로 합니다
+        #sum_price = jongmok.get_price[VP_cur]
+        #for i in range(1, 300):
+            #sum_price = sum_price + arr[i][0][1:] 
         self.price = int(sum_price / 300)
+        print('self.price = {}'.format(self.price))
 
 
 class VP_cur(Variable_price):

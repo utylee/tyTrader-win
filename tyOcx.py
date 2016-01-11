@@ -180,10 +180,10 @@ class MyWindow(QMainWindow):
             print('종목코드:{}'.format(code))
 
             arr = self.kiwoom.GetCommDataEx(sTRCode, sRQName)
-            print('{}'.format(self.jongmok_set.jongmok_dict.items()))
-            self.jongmok_set.get_jongmok(code).prices[SP_1_chart].price_obj = arr
-            #self.jongmok_set.get_jongmok(code)
-            print("{}, {}, {}".format(arr[0][0], arr[0][1], arr[0][2]))
+            print("{}, {}, {}, ...".format(arr[0][0], arr[1][0], arr[2][0]))
+            #self.jongmok_set.get_jongmok(code).prices[SP_1_chart] = arr
+            self.jongmok_set.get_jongmok(code).set_price(SP_1_chart, arr)
+            self.jongmok_set.get_jongmok(code).update_prices()
 
         else:
             pass
