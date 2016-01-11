@@ -40,6 +40,7 @@ class MyWindow(QMainWindow):
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
         # 키움OpenApi 접속 창을 띄웁니다.
         self.kiwoom.dynamicCall("CommConnect()")
+        print(".접속중입니다. 기다려주십시오...")
 
         # 종목 세트를 선언하고 ocx를 설정해줍다.
         self.jongmok_set = Jongmok_set(self.kiwoom)
@@ -79,6 +80,11 @@ class MyWindow(QMainWindow):
         #self.btn5.move(20, 170)
         self.btn5.clicked.connect(self.OnBtn5_clicked)
 
+        # 분봉 조회 버튼을 생성합니다.
+        self.btn6 = QPushButton("min candle", self)
+        self.btn6.setGeometry(20, 250, 150, 40)
+        self.btn6.clicked.connect(self.OnBtn6_clicked)
+
     def OnBtn1_clicked(self):
         #ret = self.kiwoom.dynamicCall("CommConnect()")
         #ret = self.kiwoom.CommConnect()
@@ -104,8 +110,6 @@ class MyWindow(QMainWindow):
         #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "053260", 0, "0")
         #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "016090", 0, "0")
         #ret = self.kiwoom.SetRealReg("0001", "032540", "10", "0") #TJ 미디어
-
-
 
 
         ret = self.kiwoom.SetRealReg("0001", "053260", "10", "0") #금강철강
@@ -141,6 +145,16 @@ class MyWindow(QMainWindow):
         # 키움 실시간 데이터 수신에 등록해줍니다.
         self.jongmok_set.register_realtime_all()
 
+
+    # 분봉 차트 조회 버튼 클릭시 동작함수입니다
+    def OnBtn6_clicked(self):
+        self.jongmok_set.add_jongmok("002620")  # 제일약품(신) 
+
+        self.kiwoom.SetInputValue("종목코드", "002620")
+        self.kiwoom.SetInputValue("틱범위", "1")
+        self.kiwoom.SetInputValue("수정주가구분", "0")
+        self.kiwoom.CommRqData("1분봉차트요청", "opt10080", 0, "0101")
+
     # TR가격데이터가 수신되었을 때의 트리거 함수입니다.
     def OnReceiveTrData(self, sScrNo, sRQName, sTRCode, sRecordName, sPreNext,\
             nDataLength, sErrorCode, sMessage, sSPlmMsg):
@@ -159,6 +173,18 @@ class MyWindow(QMainWindow):
                 if int(cur_price) > 3765:
                     ret = self.kiwoom.SendOrder("주식주문", "0107", "3670956111", 1, "032540", 1, 3800, "00", "") # TJ미디어
                     self.ordered = 1
+
+        elif sRQName == "1분봉차트요청":
+            print('.1분봉요청정보 수신')
+            code = self.kiwoom.CommGetData(sTRCode, "", sRQName, 0, "종목코드").strip()
+            print('종목코드:{}'.format(code))
+
+            arr = self.kiwoom.GetCommDataEx(sTRCode, sRQName)
+            print('{}'.format(self.jongmok_set.jongmok_dict.items()))
+            self.jongmok_set.get_jongmok(code).prices[SP_1_chart].price_obj = arr
+            #self.jongmok_set.get_jongmok(code)
+            print("{}, {}, {}".format(arr[0][0], arr[0][1], arr[0][2]))
+
         else:
             pass
             #print('OnReceiveTrData::{},{},{},{},{},{},{},{}'.format(sRQName.strip(), sTRCode, sRecordName, sPreNext, \
@@ -174,7 +200,8 @@ class MyWindow(QMainWindow):
         price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
         try:
             if price != "":
-                self.jongmok_set.update_jongmok_price(code, int(price))
+                #self.jongmok_set.update_jongmok_price(code, int(price), "cur")
+                self.jongmok_set.update_jongmok_price(code, int(price), VP_cur)
 
         except:
             print(".OnReceiveRealData::update_jongmok_price 중 에러발생")
