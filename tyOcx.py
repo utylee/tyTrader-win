@@ -1,17 +1,20 @@
 import sys
 import asyncio
+import time
 import socket
 import win32com
 
 #from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+from PyQt5.QtCore import pyqtSlot, QCoreApplication
 from PyQt5.QtWidgets import *
 from PyQt5.QAxContainer import *
 #from win32com import client 
 from quamash import QEventLoop
 
 from tyLogic import *
+#from tyUtils import *
+import tyUtils
 
 qt5_url = "C:/cygwin/home/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/plugins" 
 
@@ -27,22 +30,26 @@ asyncio.set_event_loop(loop)
 
 # 인터페이스 윈도우입니다.
 class MyWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, loop):
         super().__init__()
+
+        self.elapsed = 0
+        self.loop = loop
 
         self.setWindowTitle("tyOcx")
         self.setGeometry(1800,300,600,700)
 
         self.ordered = 0   # 주문 발생 여부, 중복 주문을 막기 위한 변수입니다
+        self.start_timer = 0    # 타이머 시작명령(실은 미리 시작했습니다. 다시 말해 적용을 알리는) 플래그
 
 
         #test =win32com.client.Dispatch("KHOPENAPI.KHOpenAPICtrl.1")
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
-        # 키움OpenApi 접속 창을 띄웁니다.
-        self.kiwoom.dynamicCall("CommConnect()")
-        print(".접속중입니다. 기다려주십시오...")
 
-        # 종목 세트를 선언하고 ocx를 설정해줍다.
+    #@asyncio.coroutine
+    def initialize(self):
+
+        # 종목 세트를 선언하고 ocx를 설정해줍니다.
         self.jongmok_set = Jongmok_set(self.kiwoom)
 
         # 접속 버튼을 생성합니다
@@ -84,6 +91,33 @@ class MyWindow(QMainWindow):
         self.btn6 = QPushButton("min candle", self)
         self.btn6.setGeometry(20, 250, 150, 40)
         self.btn6.clicked.connect(self.OnBtn6_clicked)
+
+        # 키움OpenApi 접속 창을 띄웁니다.
+        #self.kiwoom.dynamicCall("CommConnect()")
+        print(".접속중입니다. 기다려주십시오...")
+
+        print('calling connecting')
+        #asyncio.async(self.connect_and_timer())
+        self.loop.run_until_complete(self.connect_and_timer())
+        #self.connecting()
+
+        # 타이머를 시작합니다.
+        #yield from asyncio.async(self.timer_async())
+
+    @asyncio.coroutine
+    def connect_and_timer(self):
+        ret = self.kiwoom.CommConnect()
+        yield from asyncio.sleep(6)
+        print('after 6 seconds..')
+        print('starting asyncio timer...')
+        asyncio.async(self.timer_async())
+
+        #self.loop.call_later(3, self.timer_async)
+
+    def connect_kiwoom(self):
+        #ret = self.kiwoom.dynamicCall("CommConnect()")
+        print('come into connect_kiwoom')
+        ret = self.kiwoom.CommConnect()
 
     def OnBtn1_clicked(self):
         #ret = self.kiwoom.dynamicCall("CommConnect()")
@@ -233,9 +267,56 @@ class MyWindow(QMainWindow):
     def OnReceiveMsg(self, sScrNo, sRQName, sTrCode, sMsg):
         print("OnReceiveMsg::sMsg:{}".format(sMsg))
 
+    @asyncio.coroutine
+    def timer_async(self):
+        step = 1
+        self.timer_dict = {}
+        for i in range(60):
+            self.timer_dict[i] = 0
+        fetched = 0     # 매분 00 초에 명령수행이 완료되었는지 여부를 저장합니다
+        tic_stack = 5   # 00초가 된 후 5틱(5초 이상) 동안은 실행명령을 한다. 다만 fetched 이면 패스가 되는 방식이다
+        while 1:
+            with tyUtils.time_elapsed(self.loop, self):
+                print("1초 {}".format(self.loop.time()))
+
+                sec = int(tyUtils.now().strftime("%M,%S")[3:])
+                print(tyUtils.now().strftime("%M,%S"))
+
+                # 00~05초 일 경우, (혹시나 피치못할 타이머 딜레이 발생을 감안하여 +- 5초를 감시대상으로 삼습니다)
+                if sec < 5:
+                    # tic stack 을 하나 빼주고 fetch를 실행합니다. 하지만 이미 fetched라면 패스가 됩니다.
+                    if fetched == 0:
+                        '''
+                        process
+                        '''
+                        print('작업합니다^^ 헤헷')
+                        fetched = 1
+                # 55초 이상일 경우부터는 fetched 를 0으로 다시 초기화해줍니다
+                elif sec >= 55:
+                    fetched = 0
+
+                #임시로 동작이 없어서 sleep 을 구겨넣어봤습니다.
+                yield from asyncio.sleep(0.5)
+                
+                # some process
+            #print('elapsed:{}'.format(self.elapsed))
+            if self.elapsed < 1:
+                step = 1 - self.elapsed
+            else :
+                step = 1
+            #self.elapsed > 1 ? (step = 2 - self.elapsed) : step = 1
+            #print('step:{}'.format(step))
+            yield from asyncio.sleep(step)
+
+
+
 with loop:
-    window = MyWindow()
+    window = MyWindow(loop)
+    #asyncio.async(window.initialize())
+    window.initialize()
     window.show()
+    #loop.run_until_complete(window.initialize())
+    #loop.call_soon(window.initialize())
     loop.run_forever()
 
 '''
