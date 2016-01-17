@@ -143,7 +143,6 @@ class SP_1_chart(Static_price):
 
 
 
-
 class Logic:
     def __init__(self): pass
     def doLogic(self): pass

@@ -88,17 +88,17 @@ class MyWindow(QMainWindow):
         self.btn5.clicked.connect(self.OnBtn5_clicked)
 
         # 분봉 조회 버튼을 생성합니다.
-        self.btn6 = QPushButton("min candle", self)
-        self.btn6.setGeometry(20, 250, 150, 40)
+        self.btn6 = QPushButton("minute candle", self)
+        self.btn6.setGeometry(20, 250, 180, 50)
         self.btn6.clicked.connect(self.OnBtn6_clicked)
 
         # 키움OpenApi 접속 창을 띄웁니다.
         #self.kiwoom.dynamicCall("CommConnect()")
         print(".접속중입니다. 기다려주십시오...")
 
-        print('calling connecting')
         #asyncio.async(self.connect_and_timer())
-        self.loop.run_until_complete(self.connect_and_timer())
+        #self.loop.run_until_complete(self.connect_and_timer())
+        #self.loop.call_soon(self.connect_and_timer())
         #self.connecting()
 
         # 타이머를 시작합니다.
@@ -111,8 +111,6 @@ class MyWindow(QMainWindow):
         print('after 6 seconds..')
         print('starting asyncio timer...')
         asyncio.async(self.timer_async())
-
-        #self.loop.call_later(3, self.timer_async)
 
     def connect_kiwoom(self):
         #ret = self.kiwoom.dynamicCall("CommConnect()")
@@ -243,6 +241,8 @@ class MyWindow(QMainWindow):
         #real_volume = self.kiwoom.GetCommRealData("주식체결", 15).strip()
         #print("종목코드 : {}, 현재가 : {}, 거래량 : {}".format(code, real_price, real_volume))
 
+
+        # 조건 로직 개봉 로직입니다
         self.jongmok_set.unseal(code)
 
         '''
@@ -270,17 +270,17 @@ class MyWindow(QMainWindow):
     @asyncio.coroutine
     def timer_async(self):
         step = 1
-        self.timer_dict = {}
-        for i in range(60):
-            self.timer_dict[i] = 0
         fetched = 0     # 매분 00 초에 명령수행이 완료되었는지 여부를 저장합니다
-        tic_stack = 5   # 00초가 된 후 5틱(5초 이상) 동안은 실행명령을 한다. 다만 fetched 이면 패스가 되는 방식이다
+
         while 1:
             with tyUtils.time_elapsed(self.loop, self):
                 print("1초 {}".format(self.loop.time()))
 
-                sec = int(tyUtils.now().strftime("%M,%S")[3:])
-                print(tyUtils.now().strftime("%M,%S"))
+                minsec = tyUtils.now().strftime("%M,%S")
+
+                #sec = int(tyUtils.now().strftime("%M,%S")[3:])
+                sec = int(minsec[3:])
+                print(minsec)
 
                 # 00~05초 일 경우, (혹시나 피치못할 타이머 딜레이 발생을 감안하여 +- 5초를 감시대상으로 삼습니다)
                 if sec < 5:
@@ -291,7 +291,7 @@ class MyWindow(QMainWindow):
                         '''
                         print('작업합니다^^ 헤헷')
                         fetched = 1
-                # 55초 이상일 경우부터는 fetched 를 0으로 다시 초기화해줍니다
+                # 55초 이상일 경우부터는 fetched 를 0으로 다시 초기화해주면서 다음 분을 준비합니다
                 elif sec >= 55:
                     fetched = 0
 
@@ -309,12 +309,12 @@ class MyWindow(QMainWindow):
             yield from asyncio.sleep(step)
 
 
-
 with loop:
     window = MyWindow(loop)
     #asyncio.async(window.initialize())
     window.initialize()
     window.show()
+    loop.run_until_complete(window.connect_and_timer())
     #loop.run_until_complete(window.initialize())
     #loop.call_soon(window.initialize())
     loop.run_forever()
