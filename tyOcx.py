@@ -289,7 +289,7 @@ class MyWindow(QMainWindow):
                         '''
                         process
                         '''
-                        print('작업합니다^^ 헤헷')
+                        print('작업합니다^^ 데헷')
                         fetched = 1
                 # 55초 이상일 경우부터는 fetched 를 0으로 다시 초기화해주면서 다음 분을 준비합니다
                 elif sec >= 55:
