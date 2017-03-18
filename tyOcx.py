@@ -16,7 +16,8 @@ from tyLogic import *
 #from tyUtils import *
 import tyUtils
 
-qt5_url = "C:/cygwin/home/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/plugins" 
+#qt5_url = "C:/cygwin/home/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/plugins" 
+qt5_url = "C:/Users/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/Qt/plugins" 
 
 # PyQt5를 virtualenv 상에서 사용하기 위해서는 정확하게 Platform 폴더를 지정해줘야 한다고 합니다.
 QCoreApplication.setLibraryPaths([qt5_url])
