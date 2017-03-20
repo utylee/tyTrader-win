@@ -16,6 +16,7 @@ from tyLogic import *
 #from tyUtils import *
 import tyUtils
 
+# 새로운 Windows 7 로 이주하면서 qt버전 업데이트 때문인지 폴더 마지막이 살짝 바뀐 것 같습니다
 #qt5_url = "C:/cygwin/home/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/plugins" 
 qt5_url = "C:/Users/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/Qt/plugins" 
 
@@ -38,7 +39,8 @@ class MyWindow(QMainWindow):
         self.loop = loop
 
         self.setWindowTitle("tyOcx")
-        self.setGeometry(1800,300,600,700)
+        #self.setGeometry(1800,300,600,700)
+        self.setGeometry(100,100,300,400)
 
         self.ordered = 0   # 주문 발생 여부, 중복 주문을 막기 위한 변수입니다
         self.start_timer = 0    # 타이머 시작명령(실은 미리 시작했습니다. 다시 말해 적용을 알리는) 플래그
@@ -309,9 +311,16 @@ class MyWindow(QMainWindow):
             #print('step:{}'.format(step))
             yield from asyncio.sleep(step)
 
+class Test():
+    def __init__(self, loop):
+        pass
+
+    pass
+
 
 with loop:
     window = MyWindow(loop)
+    test = Test(loop)
     #asyncio.async(window.initialize())
     window.initialize()
     window.show()
