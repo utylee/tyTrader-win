@@ -8,7 +8,7 @@ def time_elapsed(loop, obj):
     cur = loop.time()
     yield
     obj.elapsed = loop.time() - cur
-    print('time_elapsed : {}, {}'.format(cur, obj.elapsed))
+    #print('time_elapsed : {}, {}'.format(cur, obj.elapsed))
 
 def now():
     #m = datetime.datetime.now().strftime('%M')

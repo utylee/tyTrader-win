@@ -3,7 +3,6 @@ import asyncio
 import time
 import socket
 import win32com
-import MySQLdb as mdb
 
 #from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtGui import *
@@ -77,9 +76,9 @@ class MyWindow(QMainWindow):
 
         #git-pricewin
         # 실시간 호가를 위한  추가 버튼을 생성합니다.
-        self.btn3 = QPushButton("호가", self)
-        self.btn3.move(140, 100)
-        self.btn3.clicked.connect(self.OnBtnHoga_clicked)
+        self.btn3 = QPushButton("realtime", self)
+        self.btn3.move(20, 100)
+        self.btn3.clicked.connect(self.OnBtn3_clicked)
 
         # 실시간 시세 추가 버튼을 생성합니다.
         self.btn3 = QPushButton("realtime", self)
@@ -117,23 +116,10 @@ class MyWindow(QMainWindow):
     @asyncio.coroutine
     def connect_and_timer(self):
         ret = self.kiwoom.CommConnect()
-        print('counting 6 seconds..')
         yield from asyncio.sleep(6)
+        print('after 6 seconds..')
         print('starting asyncio timer...')
         asyncio.async(self.timer_async())
-        asyncio.async(self.OnBtnHoga_clicked())
-        asyncio.async(self.connect_db())
-
-    @asyncio.coroutine
-    def connect_db(self):
-        try:
-            # mysqldb(mariaDB)에 접속합니다
-            self.con = mdb.connect('localhost', 'root', 'sksmsqnwk11', 'kiwoom')
-            # 커서를 얻어옵니다
-            self.cur = self.con.cursor()
-        except:
-            print('db exception occurred!!')
-            pass
 
     def connect_kiwoom(self):
         #ret = self.kiwoom.dynamicCall("CommConnect()")
@@ -160,24 +146,6 @@ class MyWindow(QMainWindow):
         ret = self.kiwoom.CommRqData("주식기본정보", "OPT10001", 0, "0101")
         print(ret)
 
-    # real time 호가 버튼이 눌렸을 때의 로직함수입니다
-    @asyncio.coroutine
-    def OnBtnHoga_clicked(self):
-        #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "053260", 0, "0")
-        #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "016090", 0, "0")
-        #ret = self.kiwoom.SetRealReg("0001", "032540", "10", "0") #TJ 미디어
-
-        #self.kiwoom.SetInputValue("종목코드", "041020")  
-        self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", "000890")
-        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "실시간호가",\
-                                    "OPT10004", 0, "0101")
-        #self.kiwoom.CommRqData("실시간호가", "OPT10004", 0, "0101")
-        #ret = self.kiwoom.SetRealReg("0001", "041020", "10", "0") #모헨즈 헉 6920 인피? /screenno, tcode, fid_list, reg_type
-        #ret = self.kiwoom.SetRealReg("0001", "041020", "21", "0") #호가 시간/screenno, tcode, fid_list, reg_type
-        #ret = self.kiwoom.SetRealReg("0001", "041020", "41", "0") #매도1호가/?screenno, tcode, fid_list, reg_type
-        #ret = self.kiwoom.SetRealReg("0001", "041020", "15", "0") #체결 거래량 /screenno, tcode, fid_list, reg_type
-        ret = 0
-        print("HogaClicked 리턴값: {}".format(ret))
     # real time 실시간 버튼이 눌렸을 때의 로직함수입니다
     def OnBtn3_clicked(self):
         #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "053260", 0, "0")
@@ -267,37 +235,10 @@ class MyWindow(QMainWindow):
 
     # 실시간 가격데이터가 수신되었을 때의 트리거 함수입니다.
     def OnReceiveRealData(self, code, sRealType, sRealData):
-
-        '''
-        INSERT INTO kiwoom.hoga
-        (name, curtime, price, volume, sell_total, buy_total, sell1, sell2, sell3, sell4, sell5, sell6, sell7, sell8, sell9, sell10, buy1, buy2, buy3, buy4, buy5, buy6, buy7, buy8, buy9, buy10, sell1vol, sell2vol, sell3vol, sell4vol, sell5vol, sell6vol, sell7vol, sell8vol, sell9vol, sell10vol, buy1vol, buy2vol, buy3vol, buy4vol, buy5vol, buy6vol, buy7vol, buy8vol, buy9vol, buy10vol, sell1diff, sell2diff, sell3diff, sell4diff, sell5diff, sell6diff, sell7diff, sell8diff, sell9diff, sell10diff, buy1diff, buy2diff, buy3diff, buy4diff, buy5diff, buy6diff, buy7diff, buy8diff, buy9diff, buy10diff, pricediff, dayhigh, dayopen, daylow, dayvol, daymoney, `day`)
-        VALUES('', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-        '''
-
-        print('실시간 시세 OnReceive!()::종목코드:{},/n {}, /n{}'.format(code, sRealType, sRealData))
+        print('실시간 시세 OnReceive!()::종목코드:{}'.format(code))
         #real_price = self.kiwoom.dynamicCall("GetCommRealData(QString, int)", code, 0 )
 
-        name = ''
-        curtime = ''
-        price = ''
-        volume = ''
-        sell_total = ''
-        buy_total = ''
-
-
-        if (sRealType == "주식체결"):
-            print('1111111')
-        elif (sRealType == "주식호가잔량"):
-            print('2222222')
-
-        #price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[0:]   #가격
-        price = self.kiwoom.GetCommRealData("실시간호가", 10).strip()   #가격
-        time = self.kiwoom.GetCommRealData("실시간호가", 21).strip()[0:] #호가시간
-        sell1 = self.kiwoom.GetCommRealData("실시간호가", 41).strip()[0:] #매도호가1
-        buy1 = self.kiwoom.GetCommRealData("실시간호가", 51).strip()[0:] #매수호가1
-        vol = self.kiwoom.GetCommRealData("실시간호가", 15).strip()[0:] #체결 거래량
-        print("실시간 수신 : 시간 = {}, 가격 = {}, 체결량 = {}, 매도1호가 = {}, 매수1호가 = {}".format(time, price, vol, sell1, buy1))
-        '''
+        price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
         try:
             if price != "":
                 #self.jongmok_set.update_jongmok_price(code, int(price), "cur")
@@ -305,15 +246,13 @@ class MyWindow(QMainWindow):
 
         except:
             print(".OnReceiveRealData::update_jongmok_price 중 에러발생")
-        '''
         #real_price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[1:]
         #real_volume = self.kiwoom.GetCommRealData("주식체결", 15).strip()
         #print("종목코드 : {}, 현재가 : {}, 거래량 : {}".format(code, real_price, real_volume))
 
 
         # 조건 로직 개봉 로직입니다
-        # 로직 일단 없이 테스
-        #self.jongmok_set.unseal(code)
+        self.jongmok_set.unseal(code)
 
         '''
         # 관심종목의 경우 조건만족 매수로직입니다.
@@ -344,13 +283,13 @@ class MyWindow(QMainWindow):
 
         while 1:
             with tyUtils.time_elapsed(self.loop, self):
-                #print("1초 {}".format(self.loop.time()))
+                print("1초 {}".format(self.loop.time()))
 
                 minsec = tyUtils.now().strftime("%M,%S")
 
                 #sec = int(tyUtils.now().strftime("%M,%S")[3:])
                 sec = int(minsec[3:])
-                #print(minsec)
+                print(minsec)
 
                 # 00~05초 일 경우, (혹시나 피치못할 타이머 딜레이 발생을 감안하여 +- 5초를 감시대상으로 삼습니다)
                 if sec < 5:
@@ -359,7 +298,7 @@ class MyWindow(QMainWindow):
                         '''
                         process
                         '''
-                        print('(1분경과) 작업중..')
+                        print('작업합니다^^ 데헷')
                         fetched = 1
                 # 55초 이상일 경우부터는 fetched 를 0으로 다시 초기화해주면서 다음 분을 준비합니다
                 elif sec >= 55:
