@@ -46,6 +46,8 @@ class MyWindow(QMainWindow):
         self.ordered = 0   # 주문 발생 여부, 중복 주문을 막기 위한 변수입니다
         self.start_timer = 0    # 타이머 시작명령(실은 미리 시작했습니다. 다시 말해 적용을 알리는) 플래그
 
+        self.dbcur = 0 # db 연결후의 실행커서를 저장해 놓습니다
+
 
         #test =win32com.client.Dispatch("KHOPENAPI.KHOpenAPICtrl.1")
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
@@ -122,7 +124,7 @@ class MyWindow(QMainWindow):
         print('starting asyncio timer...')
         asyncio.async(self.timer_async())
         asyncio.async(self.OnBtnHoga_clicked())
-        asyncio.async(self.connect_db())
+        #asyncio.async(self.connect_db())
 
     @asyncio.coroutine
     def connect_db(self):
@@ -130,7 +132,7 @@ class MyWindow(QMainWindow):
             # mysqldb(mariaDB)에 접속합니다
             self.con = mdb.connect('localhost', 'root', 'sksmsqnwk11', 'kiwoom')
             # 커서를 얻어옵니다
-            self.cur = self.con.cursor()
+            self.dbcur = self.con.cursor()
         except:
             print('db exception occurred!!')
             pass
@@ -169,8 +171,10 @@ class MyWindow(QMainWindow):
 
         #self.kiwoom.SetInputValue("종목코드", "041020")  
         self.kiwoom.dynamicCall("SetInputValue(QString, QString)", "종목코드", "000890")
-        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "실시간호가",\
-                                    "OPT10004", 0, "0101")
+        self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "주식기본정보",\
+                                    "OPT10001", 0, "0101")
+        #self.kiwoom.dynamicCall("CommRqData(QString, QString, int, QString)", "실시간호가",\
+                                    #"OPT10004", 0, "0101")
         #self.kiwoom.CommRqData("실시간호가", "OPT10004", 0, "0101")
         #ret = self.kiwoom.SetRealReg("0001", "041020", "10", "0") #모헨즈 헉 6920 인피? /screenno, tcode, fid_list, reg_type
         #ret = self.kiwoom.SetRealReg("0001", "041020", "21", "0") #호가 시간/screenno, tcode, fid_list, reg_type
@@ -232,13 +236,24 @@ class MyWindow(QMainWindow):
     def OnReceiveTrData(self, sScrNo, sRQName, sTRCode, sRecordName, sPreNext,\
             nDataLength, sErrorCode, sMessage, sSPlmMsg):
         if sRQName == "주식기본정보":
-            print('come here')
+            print('TrData!!')
             #cur_price = self.kiwoom.dynamicCall("CommGetData(QString, QString, QString, int, QString)", \
                                 #sTRCode, "", sRQName, 0, "현재가")
             cur_price = self.kiwoom.CommGetData(sTRCode, "", sRQName, 0, "현재가").strip()
             cur_code = self.kiwoom.CommGetData(sTRCode, "", sRQName, 0, "종목코드").strip()
+            cur_name = self.kiwoom.CommGetData(sTRCode, "", sRQName, 0, "종목명").strip()
             cur_price = cur_price[1:]
-            print("현재가 : {}, {}".format(sTRCode, cur_price))
+            print("데이터 : {}, {}".format(cur_name, cur_price))
+            print("db 삽입중..")
+            state = "INSERT INTO basicinfo (code, title) VALUES (\'{}\', \'{}\')".format(cur_code, cur_name)
+            print(state)
+            #self.dbcur.execute(state)
+            '''
+            INSERT INTO kiwoom.basicinfo
+            (code, title, market, price, daydiff, beforeprice, `open`, high, low, limitup, limitdown)
+            VALUES('', '', 0, '', '', '', '', '', '', '', '');
+            '''
+
 
             # 관심종목의 경우 조건만족 매수로직입니다.
             if cur_code == "032540" and self.ordered == 0: # TJ미디어, 아직 매수주문이 발생하지 않은 경우
@@ -270,11 +285,18 @@ class MyWindow(QMainWindow):
 
         '''
         INSERT INTO kiwoom.hoga
-        (name, curtime, price, volume, sell_total, buy_total, sell1, sell2, sell3, sell4, sell5, sell6, sell7, sell8, sell9, sell10, buy1, buy2, buy3, buy4, buy5, buy6, buy7, buy8, buy9, buy10, sell1vol, sell2vol, sell3vol, sell4vol, sell5vol, sell6vol, sell7vol, sell8vol, sell9vol, sell10vol, buy1vol, buy2vol, buy3vol, buy4vol, buy5vol, buy6vol, buy7vol, buy8vol, buy9vol, buy10vol, sell1diff, sell2diff, sell3diff, sell4diff, sell5diff, sell6diff, sell7diff, sell8diff, sell9diff, sell10diff, buy1diff, buy2diff, buy3diff, buy4diff, buy5diff, buy6diff, buy7diff, buy8diff, buy9diff, buy10diff, pricediff, dayhigh, dayopen, daylow, dayvol, daymoney, `day`)
-        VALUES('', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        (name, curtime, price, volume, sell_total, buy_total, \ 
+        sell1, sell2, sell3, sell4, sell5, sell6, sell7, sell8, sell9, sell10, \ 
+        buy1, buy2, buy3, buy4, buy5, buy6, buy7, buy8, buy9, buy10, \ 
+        sell1vol, sell2vol, sell3vol, sell4vol, sell5vol, sell6vol, sell7vol, sell8vol, sell9vol, sell10vol,\ 
+        buy1vol, buy2vol, buy3vol, buy4vol, buy5vol, buy6vol, buy7vol, buy8vol, buy9vol, buy10vol, \ 
+        sell1diff, sell2diff, sell3diff, sell4diff, sell5diff, sell6diff, sell7diff, sell8diff, sell9diff, sell10diff,\ 
+        buy1diff, buy2diff, buy3diff, buy4diff, buy5diff, buy6diff, buy7diff, buy8diff, buy9diff, buy10diff, \ 
+        pricediff, dayhigh, dayopen, daylow, dayvol, daymoney, `day`, clienttime)
+        VALUES('', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 0);
         '''
 
-        print('실시간 시세 OnReceive!()::종목코드:{},/n {}, /n{}'.format(code, sRealType, sRealData))
+        print('\n** 실시간 시세 OnReceive!()::종목:{}, 타입: {}, 데이타: ->\n\t {}'.format(code, sRealType, sRealData))
         #real_price = self.kiwoom.dynamicCall("GetCommRealData(QString, int)", code, 0 )
 
         name = ''
@@ -283,20 +305,39 @@ class MyWindow(QMainWindow):
         volume = ''
         sell_total = ''
         buy_total = ''
+        sell1 = sell2 = sell3 = sell4 = sell5 = sell6 = sell7 = sell8 = sell9 = sell10 = ''
+        sell1vol = sell2vol = sell3vol = sell4vol = sell5vol = sell6vol = sell7vol = sell8vol = sell9vol = sell10vol = ''
+        sell1diff = sell2diff = sell3diff = sell4diff = sell5diff = sell6diff = sell7diff = sell8diff = sell9diff = sell10diff = ''
+        buy1 = buy2 = buy3 = buy4 = buy5 = buy6 = buy7 = buy8 = buy9 = buy10 = ''
+        buy1vol = buy2vol = buy3vol = buy4vol = buy5vol = buy6vol = buy7vol = buy8vol = buy9vol = buy10vol = ''
+        buy1diff = buy2diff = buy3diff = buy4diff = buy5diff = buy6diff = buy7diff = buy8diff = buy9diff = buy10diff = ''
+        dayhigh = daylow = dayopen = ''
+        pricediff = ''
+        daymoney = ''
+        dayvol = ''
+        day = ''
+        clienttime = 0
 
+        now = tyUtils.now()
+        
+        day = now.strftime('%m%d') 
+        clienttime = now.strftime('%H%M%S%f')
 
         if (sRealType == "주식체결"):
             print('1111111')
         elif (sRealType == "주식호가잔량"):
             print('2222222')
-
+        elif (sRealType == "주식예상체결"):
+            pass
+        elif (sRealType == "주식시간외호가"):
+            pass
         #price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[0:]   #가격
         price = self.kiwoom.GetCommRealData("실시간호가", 10).strip()   #가격
         time = self.kiwoom.GetCommRealData("실시간호가", 21).strip()[0:] #호가시간
         sell1 = self.kiwoom.GetCommRealData("실시간호가", 41).strip()[0:] #매도호가1
         buy1 = self.kiwoom.GetCommRealData("실시간호가", 51).strip()[0:] #매수호가1
         vol = self.kiwoom.GetCommRealData("실시간호가", 15).strip()[0:] #체결 거래량
-        print("실시간 수신 : 시간 = {}, 가격 = {}, 체결량 = {}, 매도1호가 = {}, 매수1호가 = {}".format(time, price, vol, sell1, buy1))
+        #print("실시간 수신 : 현재시간 = {}, 서버시간 = {} \n 가격 = {}, 체결량 = {}, 매도1호가 = {}, 매수1호가 = {}".format(clienttime, time, price, vol, sell1, buy1))
         '''
         try:
             if price != "":
@@ -359,7 +400,7 @@ class MyWindow(QMainWindow):
                         '''
                         process
                         '''
-                        print('(1분경과) 작업중..')
+                        #print('(1분경과) 작업중..')
                         fetched = 1
                 # 55초 이상일 경우부터는 fetched 를 0으로 다시 초기화해주면서 다음 분을 준비합니다
                 elif sec >= 55:
