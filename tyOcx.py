@@ -46,8 +46,8 @@ class MyWindow(QMainWindow):
         self.ordered = 0   # 주문 발생 여부, 중복 주문을 막기 위한 변수입니다
         self.start_timer = 0    # 타이머 시작명령(실은 미리 시작했습니다. 다시 말해 적용을 알리는) 플래그
 
+        self.dbcon = 0 # db 연결후의 con을 저장해 놓습니다
         self.dbcur = 0 # db 연결후의 실행커서를 저장해 놓습니다
-
 
         #test =win32com.client.Dispatch("KHOPENAPI.KHOpenAPICtrl.1")
         self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
@@ -124,15 +124,17 @@ class MyWindow(QMainWindow):
         print('starting asyncio timer...')
         asyncio.async(self.timer_async())
         asyncio.async(self.OnBtnHoga_clicked())
-        #asyncio.async(self.connect_db())
+        asyncio.async(self.connect_db())
 
     @asyncio.coroutine
     def connect_db(self):
         try:
             # mysqldb(mariaDB)에 접속합니다
-            self.con = mdb.connect('localhost', 'root', 'sksmsqnwk11', 'kiwoom')
+            # utf8 을 지정해 주는 게 포인트 입니다
+            self.dbcon = mdb.connect('localhost', 'root', 'sksmsqnwk11', 'kiwoom', charset = 'utf8') 
             # 커서를 얻어옵니다
-            self.dbcur = self.con.cursor()
+            self.dbcur = self.dbcon.cursor()
+            print('DB연결성공')
         except:
             print('db exception occurred!!')
             pass
@@ -246,8 +248,12 @@ class MyWindow(QMainWindow):
             print("데이터 : {}, {}".format(cur_name, cur_price))
             print("db 삽입중..")
             state = "INSERT INTO basicinfo (code, title) VALUES (\'{}\', \'{}\')".format(cur_code, cur_name)
+            #state = "INSERT INTO basicinfo (code, title) VALUES (\'{}\', \'abcd\');".format(cur_code)
             print(state)
-            #self.dbcur.execute(state)
+            print("리턴값:{}".format(self.dbcur.execute(state)))
+            # commit을 해야 db에 반영이 됩니다
+            self.dbcon.commit()
+
             '''
             INSERT INTO kiwoom.basicinfo
             (code, title, market, price, daydiff, beforeprice, `open`, high, low, limitup, limitdown)
