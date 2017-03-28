@@ -123,8 +123,8 @@ class MyWindow(QMainWindow):
         yield from asyncio.sleep(6)
         print('starting asyncio timer...')
         asyncio.async(self.timer_async())
-        asyncio.async(self.OnBtnHoga_clicked())
         asyncio.async(self.connect_db())
+        asyncio.async(self.OnBtnHoga_clicked())
 
     @asyncio.coroutine
     def connect_db(self):
@@ -168,7 +168,6 @@ class MyWindow(QMainWindow):
     @asyncio.coroutine
     def OnBtnHoga_clicked(self):
         #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "053260", 0, "0")
-        #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "016090", 0, "0")
         #ret = self.kiwoom.SetRealReg("0001", "032540", "10", "0") #TJ 미디어
 
         #self.kiwoom.SetInputValue("종목코드", "041020")  
@@ -247,7 +246,7 @@ class MyWindow(QMainWindow):
             cur_price = cur_price[1:]
             print("데이터 : {}, {}".format(cur_name, cur_price))
             print("db 삽입중..")
-            state = "INSERT INTO basicinfo (code, title) VALUES (\'{}\', \'{}\')".format(cur_code, cur_name)
+            state = "INSERT INTO basicinfo (code, title, price) VALUES (\'{}\', \'{}\')".format(cur_code, cur_name, cur_price)
             #state = "INSERT INTO basicinfo (code, title) VALUES (\'{}\', \'abcd\');".format(cur_code)
             print(state)
             print("리턴값:{}".format(self.dbcur.execute(state)))
