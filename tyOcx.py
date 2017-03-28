@@ -249,7 +249,7 @@ class MyWindow(QMainWindow):
             state = "INSERT INTO basicinfo (code, title, price) VALUES (\'{}\', \'{}\')".format(cur_code, cur_name, cur_price)
             #state = "INSERT INTO basicinfo (code, title) VALUES (\'{}\', \'abcd\');".format(cur_code)
             print(state)
-            print("리턴값:{}".format(self.dbcur.execute(state)))
+            #print("리턴값:{}".format(self.dbcur.execute(state)))
             # commit을 해야 db에 반영이 됩니다
             self.dbcon.commit()
 
