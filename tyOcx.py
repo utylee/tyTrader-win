@@ -14,6 +14,7 @@ from PyQt5.QAxContainer import *
 from quamash import QEventLoop
 
 from tyLogic import *
+from forkdef import *
 #from tyUtils import *
 import tyUtils
 
@@ -116,18 +117,24 @@ class MyWindow(QMainWindow):
         # 타이머를 시작합니다.
         #yield from asyncio.async(self.timer_async())
 
-    @asyncio.coroutine
-    def connect_and_timer(self):
+    #@asyncio.coroutine
+    #def connect_and_timer(self):
+    async def connect_and_timer(self):
         ret = self.kiwoom.CommConnect()
         print('counting 6 seconds..')
-        yield from asyncio.sleep(6)
+        #yield from asyncio.sleep(6)
+        await asyncio.sleep(6)
         print('starting asyncio timer...')
-        asyncio.async(self.timer_async())
-        asyncio.async(self.connect_db())
-        asyncio.async(self.OnBtnHoga_clicked())
+        #asyncio.async(self.timer_async())
+        #asyncio.async(self.connect_db())
+        #asyncio.async(self.OnBtnHoga_clicked())
+        asyncio.ensure_future(self.timer_async())
+        asyncio.ensure_future(self.connect_db())
+        asyncio.ensure_future(self.OnBtnHoga_clicked())
 
-    @asyncio.coroutine
-    def connect_db(self):
+    #@asyncio.coroutine
+    #def connect_db(self):
+    async def connect_db(self):
         try:
             # mysqldb(mariaDB)에 접속합니다
             # utf8 을 지정해 주는 게 포인트 입니다
@@ -165,8 +172,9 @@ class MyWindow(QMainWindow):
         print(ret)
 
     # real time 호가 버튼이 눌렸을 때의 로직함수입니다
-    @asyncio.coroutine
-    def OnBtnHoga_clicked(self):
+    #@asyncio.coroutine
+    #def OnBtnHoga_clicked(self):
+    async def OnBtnHoga_clicked(self):
         #ret = self.kiwoom.dynamicCall("SetRealReg(QString, QString, int, QString)", "9999", "053260", 0, "0")
         #ret = self.kiwoom.SetRealReg("0001", "032540", "10", "0") #TJ 미디어
 
@@ -329,13 +337,18 @@ class MyWindow(QMainWindow):
         clienttime = now.strftime('%H%M%S%f')
 
         if (sRealType == "주식체결"):
-            print('1111111')
+            objtype = C주식체결(self.kiwoom)
         elif (sRealType == "주식호가잔량"):
-            print('2222222')
+            objtype = C주식호가잔량(self.kiwoom)
         elif (sRealType == "주식예상체결"):
-            pass
+            objtype = C주식예상체결(self.kiwoom)
         elif (sRealType == "주식시간외호가"):
-            pass
+            objtype = C주식시간외호가(self.kiwoom)
+
+        objtype.getcomdata()   #kiwoom.GetCommRealData를 수행하는 부분
+        objtype.insertdb()   #kiwoom.GetCommRealData를 수행하는 부분
+
+
         #price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[0:]   #가격
         price = self.kiwoom.GetCommRealData("실시간호가", 10).strip()   #가격
         time = self.kiwoom.GetCommRealData("실시간호가", 21).strip()[0:] #호가시간
@@ -383,8 +396,9 @@ class MyWindow(QMainWindow):
     def OnReceiveMsg(self, sScrNo, sRQName, sTrCode, sMsg):
         print("OnReceiveMsg::sMsg:{}".format(sMsg))
 
-    @asyncio.coroutine
-    def timer_async(self):
+    #@asyncio.coroutine
+    #def timer_async(self):
+    async def timer_async(self):
         step = 1
         fetched = 0     # 매분 00 초에 명령수행이 완료되었는지 여부를 저장합니다
 
@@ -412,7 +426,8 @@ class MyWindow(QMainWindow):
                     fetched = 0
 
                 #임시로 동작이 없어서 sleep 을 구겨넣어봤습니다.
-                yield from asyncio.sleep(0.5)
+                #yield from asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)
                 
                 # some process
             #print('elapsed:{}'.format(self.elapsed))
@@ -422,7 +437,8 @@ class MyWindow(QMainWindow):
                 step = 1
             #self.elapsed > 1 ? (step = 2 - self.elapsed) : step = 1
             #print('step:{}'.format(step))
-            yield from asyncio.sleep(step)
+            #yield from asyncio.sleep(step)
+            await asyncio.sleep(step)
 
 class Test():
     def __init__(self, loop):
