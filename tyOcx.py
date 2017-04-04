@@ -4,6 +4,8 @@ import time
 import socket
 import win32com
 import MySQLdb as mdb
+#asyncio를 지원하는 mysql 접속모듈입니다
+import aiomysql as adb
 
 #from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtGui import *
@@ -20,10 +22,10 @@ import tyUtils
 
 # 새로운 Windows 7 로 이주하면서 qt버전 업데이트 때문인지 폴더 마지막이 살짝 바뀐 것 같습니다
 #qt5_url = "C:/cygwin/home/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/plugins" 
-qt5_url = "C:/Users/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/Qt/plugins" 
+#qt5_url = "C:/Users/utylee/.virtualenvs/tyTrader-win/Lib/site-packages/PyQt5/Qt/plugins" 
 
 # PyQt5를 virtualenv 상에서 사용하기 위해서는 정확하게 Platform 폴더를 지정해줘야 한다고 합니다.
-QCoreApplication.setLibraryPaths([qt5_url])
+#QCoreApplication.setLibraryPaths([qt5_url])
 # PyQt와 quamash를 이용해서 asyncio eventloop방식을 사용합니다
 app = QApplication(sys.argv)
 loop = QEventLoop(app)
@@ -50,8 +52,7 @@ class MyWindow(QMainWindow):
         self.dbcon = 0 # db 연결후의 con을 저장해 놓습니다
         self.dbcur = 0 # db 연결후의 실행커서를 저장해 놓습니다
 
-        #test =win32com.client.Dispatch("KHOPENAPI.KHOpenAPICtrl.1")
-        self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
+        #self.kiwoom = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
 
     #@asyncio.coroutine
     def initialize(self):
@@ -119,28 +120,36 @@ class MyWindow(QMainWindow):
 
     #@asyncio.coroutine
     #def connect_and_timer(self):
-    async def connect_and_timer(self):
+    async def connect_and_timer(self, loop):
+        '''
         ret = self.kiwoom.CommConnect()
         print('counting 6 seconds..')
-        #yield from asyncio.sleep(6)
         await asyncio.sleep(6)
         print('starting asyncio timer...')
+        '''
         #asyncio.async(self.timer_async())
         #asyncio.async(self.connect_db())
         #asyncio.async(self.OnBtnHoga_clicked())
-        asyncio.ensure_future(self.timer_async())
-        asyncio.ensure_future(self.connect_db())
-        asyncio.ensure_future(self.OnBtnHoga_clicked())
+        #asyncio.ensure_future(self.timer_async())
+        asyncio.ensure_future(self.connect_db(loop))
+        #asyncio.ensure_future(self.OnBtnHoga_clicked())
 
     #@asyncio.coroutine
     #def connect_db(self):
-    async def connect_db(self):
+    async def connect_db(self, loop):
         try:
             # mysqldb(mariaDB)에 접속합니다
             # utf8 을 지정해 주는 게 포인트 입니다
-            self.dbcon = mdb.connect('localhost', 'root', 'sksmsqnwk11', 'kiwoom', charset = 'utf8') 
+            #self.dbcon = mdb.connect('localhost', 'root', 'sksmsqnwk11', 'kiwoom', charset = 'utf8') 
             # 커서를 얻어옵니다
-            self.dbcur = self.dbcon.cursor()
+            #self.dbcur = self.dbcon.cursor()
+                
+            #asyncio 지원 sql 모듈로 교체했습니다
+            #self.dbcon = await adb.connect(host='localhost', port='3306', user='root', password='sksmsqnwk11', \
+            self.dbcon = await adb.connect(host='127.0.0.1', port=3306, user='root', password='sksmsqnwk11', \
+                                    db='kiwoom', charset = 'utf8', loop=loop) 
+            print('ok')
+            #self.dbcur = await self.dbcon.cursor()
             print('DB연결성공')
         except:
             print('db exception occurred!!')
@@ -241,9 +250,14 @@ class MyWindow(QMainWindow):
         self.kiwoom.SetInputValue("수정주가구분", "0")
         self.kiwoom.CommRqData("1분봉차트요청", "opt10080", 0, "0101")
 
+    async def insertdb(self, state):
+        ret = await self.dbcur.execute(state)
+        print("리턴값:{}".format(ret))
+        await self.dbcur.commit()
+
     # TR가격데이터가 수신되었을 때의 트리거 함수입니다.
     def OnReceiveTrData(self, sScrNo, sRQName, sTRCode, sRecordName, sPreNext,\
-            nDataLength, sErrorCode, sMessage, sSPlmMsg):
+                        nDataLength, sErrorCode, sMessage, sSPlmMsg):
         if sRQName == "주식기본정보":
             print('TrData!!')
             #cur_price = self.kiwoom.dynamicCall("CommGetData(QString, QString, QString, int, QString)", \
@@ -257,9 +271,14 @@ class MyWindow(QMainWindow):
             state = "INSERT INTO basicinfo (code, title, price) VALUES (\'{}\', \'{}\')".format(cur_code, cur_name, cur_price)
             #state = "INSERT INTO basicinfo (code, title) VALUES (\'{}\', \'abcd\');".format(cur_code)
             print(state)
+            asyncio.ensure_future(self.insertdb(state))
+            '''
+            ret = self.dbcur.execute(state)
+            print("리턴값:{}".format(ret))
             #print("리턴값:{}".format(self.dbcur.execute(state)))
             # commit을 해야 db에 반영이 됩니다
             self.dbcon.commit()
+            '''
 
             '''
             INSERT INTO kiwoom.basicinfo
@@ -336,6 +355,7 @@ class MyWindow(QMainWindow):
         day = now.strftime('%m%d') 
         clienttime = now.strftime('%H%M%S%f')
 
+        '''
         if (sRealType == "주식체결"):
             objtype = C주식체결(self.kiwoom)
         elif (sRealType == "주식호가잔량"):
@@ -347,6 +367,7 @@ class MyWindow(QMainWindow):
 
         objtype.getcomdata()   #kiwoom.GetCommRealData를 수행하는 부분
         objtype.insertdb()   #kiwoom.GetCommRealData를 수행하는 부분
+        '''
 
 
         #price = self.kiwoom.GetCommRealData("주식시세", 10).strip()[0:]   #가격
@@ -451,9 +472,9 @@ with loop:
     window = MyWindow(loop)
     test = Test(loop)
     #asyncio.async(window.initialize())
-    window.initialize()
+    #window.initialize()
     window.show()
-    loop.run_until_complete(window.connect_and_timer())
+    loop.run_until_complete(window.connect_and_timer(loop))
     #loop.run_until_complete(window.initialize())
     #loop.call_soon(window.initialize())
     loop.run_forever()
